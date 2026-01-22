@@ -5,6 +5,9 @@
       <p class="mt-2 text-sm text-[#4f3b52]">
         图片→取样→匹配调色板→拼豆渲染，输出清晰方格与圆孔效果。
       </p>
+      <p class="mt-2 text-sm text-[#4f3b52]">
+        建议: 图片转换后再打开游戏可获取预览以及所需的颜色
+      </p>
     </div>
     <div class="flex flex-wrap gap-2">
       <button
