@@ -46,14 +46,27 @@
         </div>
 
         <div class="mt-6 grid gap-6 xl:grid-cols-[1fr_1fr_280px]">
-          <PixelPreview :image-info="imageInfo">
-            <img
-              v-if="previewImageUrl"
-              :src="previewImageUrl"
-              alt="拼豆预览"
-              class="h-auto w-full"
-            />
-            <div v-else class="px-6 py-12 text-sm text-[#4f3b52]">还没有预览图</div>
+          <PixelPreview :image-info="imageInfo" :meta-info="previewGridInfo">
+            <div
+              ref="previewRef"
+              class="relative w-full"
+              @mousemove="onPreviewMove"
+              @mouseleave="onPreviewLeave"
+            >
+              <img
+                v-if="previewImageUrl"
+                :src="previewImageUrl"
+                alt="拼豆预览"
+                class="h-auto w-full"
+              />
+              <div v-else class="px-6 py-12 text-sm text-[#4f3b52]">还没有预览图</div>
+              <div
+                v-if="previewHoverInfo"
+                class="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-[#2b1a2b] shadow"
+              >
+                {{ previewHoverInfo }}
+              </div>
+            </div>
           </PixelPreview>
 
           <BeadBoard
@@ -107,6 +120,8 @@ const board = ref<number[]>([])
 const boardBackground = DEFAULT_BACKGROUND_COLOR
 const showGame = ref(false)
 const previewImageUrl = ref('')
+const previewHoverInfo = ref<string | null>(null)
+const previewRef = ref<HTMLDivElement | null>(null)
 
 const updatePreview = () => {
   if (!canvasRef.value) return
@@ -118,8 +133,38 @@ const openGame = () => {
   showGame.value = true
 }
 
+const onPreviewMove = (event: MouseEvent) => {
+  if (!previewRef.value || !perlerData.value) return
+  const rect = previewRef.value.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+  const cellSize = rect.width / perlerData.value.width
+  const cellX = Math.floor(x / cellSize)
+  const cellY = Math.floor(y / cellSize)
+  if (
+    cellX < 0 ||
+    cellY < 0 ||
+    cellX >= perlerData.value.width ||
+    cellY >= perlerData.value.height
+  ) {
+    previewHoverInfo.value = null
+    return
+  }
+  const index = cellY * perlerData.value.width + cellX
+  const colorIndex = perlerData.value.indices[index] ?? -1
+  const color = perlerData.value.palette[colorIndex]
+  const name = color?.name ?? '空'
+  const hex = color?.hex ?? ''
+  previewHoverInfo.value = `${cellY + 1}行 ${cellX + 1}列 ${name}${hex ? ` ${hex}` : ''}`
+}
+
+const onPreviewLeave = () => {
+  previewHoverInfo.value = null
+}
+
 const boardWidth = computed(() => perlerData.value?.width ?? gridWidth.value)
 const boardHeight = computed(() => perlerData.value?.height ?? gridHeight.value)
+const previewGridInfo = computed(() => `${boardWidth.value} x ${boardHeight.value}`)
 const paletteDisplay = computed(() =>
   palette.value
     .map((color, index) => ({ ...color, index }))
