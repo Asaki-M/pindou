@@ -1,5 +1,10 @@
 const DEFAULT_BACKGROUND = '#cdb7c2'
 
+export type PaletteEntry = {
+  name: string
+  hex: string
+}
+
 export type PaletteColor = {
   name: string
   hex: string
@@ -16,7 +21,7 @@ export type PerlerOptions = {
   image: HTMLImageElement
   gridWidth: number
   gridHeight: number
-  palette: PaletteColor[]
+  palette: PaletteEntry[]
   dither: boolean
   mergeStrength: number
   background: string
@@ -29,7 +34,7 @@ export type PerlerResult = {
   height: number
 }
 
-const PALETTE = [
+const PALETTE: PaletteEntry[] = [
   { name: 'Onyx', hex: '#1d0e1f' },
   { name: 'Eggplant', hex: '#2e1632' },
   { name: 'Mulberry', hex: '#5a1e50' },
@@ -83,7 +88,7 @@ const rgbToOklab = (r: number, g: number, b: number) => {
   return { L, A, B }
 }
 
-const preparePalette = (palette = PALETTE) =>
+const preparePalette = (palette: PaletteEntry[] = PALETTE) =>
   palette.map((item) => {
     const { r, g, b } = hexToRgb(item.hex)
     const lab = rgbToOklab(r, g, b)
@@ -106,6 +111,7 @@ const closestColorIndex = (palette: PaletteColor[], r: number, g: number, b: num
   let bestDistance = Infinity
   for (let i = 0; i < palette.length; i += 1) {
     const color = palette[i]
+    if (!color) continue
     const dL = target.L - color.l
     const dA = target.A - color.a
     const dB = target.B - color.b2
@@ -130,11 +136,12 @@ const ditherImage = (
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const offset = getOffset(x, y)
-      const oldR = data[offset]
-      const oldG = data[offset + 1]
-      const oldB = data[offset + 2]
+      const oldR = data[offset] ?? 0
+      const oldG = data[offset + 1] ?? 0
+      const oldB = data[offset + 2] ?? 0
       const idx = closestColorIndex(palette, oldR, oldG, oldB)
       const color = palette[idx]
+      if (!color) continue
       indices[y * width + x] = idx
 
       const errR = oldR - color.r
@@ -148,9 +155,12 @@ const ditherImage = (
       const spread = (nx: number, ny: number, factor: number) => {
         if (nx < 0 || nx >= width || ny < 0 || ny >= height) return
         const target = getOffset(nx, ny)
-        data[target] = clamp(data[target] + errR * factor, 0, 255)
-        data[target + 1] = clamp(data[target + 1] + errG * factor, 0, 255)
-        data[target + 2] = clamp(data[target + 2] + errB * factor, 0, 255)
+        const rValue = data[target] ?? 0
+        const gValue = data[target + 1] ?? 0
+        const bValue = data[target + 2] ?? 0
+        data[target] = clamp(rValue + errR * factor, 0, 255)
+        data[target + 1] = clamp(gValue + errG * factor, 0, 255)
+        data[target + 2] = clamp(bValue + errB * factor, 0, 255)
       }
 
       spread(x + 1, y, 7 / 16)
@@ -175,15 +185,20 @@ const quantizeImage = (
     for (let i = 0; i < width * height; i += 1) {
       const offset = i * 4
       const target = i * 3
-      floatData[target] = data[offset]
-      floatData[target + 1] = data[offset + 1]
-      floatData[target + 2] = data[offset + 2]
+      floatData[target] = data[offset] ?? 0
+      floatData[target + 1] = data[offset + 1] ?? 0
+      floatData[target + 2] = data[offset + 2] ?? 0
     }
     ditherImage(floatData, width, height, palette, indices)
   } else {
     for (let i = 0; i < width * height; i += 1) {
       const offset = i * 4
-      const idx = closestColorIndex(palette, data[offset], data[offset + 1], data[offset + 2])
+      const idx = closestColorIndex(
+        palette,
+        data[offset] ?? 0,
+        data[offset + 1] ?? 0,
+        data[offset + 2] ?? 0,
+      )
       indices[i] = idx
     }
   }
@@ -209,11 +224,11 @@ const mergeNeighbors = (
           for (let dx = -1; dx <= 1; dx += 1) {
             const nx = x + dx
             if (nx < 0 || nx >= width) continue
-            const idx = current[ny * width + nx]
+            const idx = current[ny * width + nx] ?? 0
             counts.set(idx, (counts.get(idx) ?? 0) + 1)
           }
         }
-        let chosen = current[y * width + x]
+        let chosen = current[y * width + x] ?? 0
         let bestCount = -1
         counts.forEach((count, key) => {
           if (count > bestCount) {
@@ -234,7 +249,11 @@ const computeCounts = (indices: Uint16Array, palette: PaletteColor[]) => {
     color.count = 0
   })
   for (let i = 0; i < indices.length; i += 1) {
-    palette[indices[i]].count += 1
+    const idx = indices[i] ?? 0
+    const color = palette[idx]
+    if (color) {
+      color.count += 1
+    }
   }
   return palette
 }
@@ -261,7 +280,7 @@ export const buildPerlerData = (options: PerlerOptions): PerlerResult => {
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
   const bg = hexToRgb(options.background)
   for (let i = 0; i < imageData.data.length; i += 4) {
-    if (imageData.data[i + 3] < 128) {
+    if ((imageData.data[i + 3] ?? 0) < 128) {
       imageData.data[i] = bg.r
       imageData.data[i + 1] = bg.g
       imageData.data[i + 2] = bg.b
@@ -316,12 +335,13 @@ export const renderBeads = (
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const index = data.indices[y * width + x]
-      const color = data.palette[index]
+      const safeIndex = index ?? 0
+      const color = data.palette[safeIndex] ?? data.palette[0]
       const cx = x * size + size / 2
       const cy = y * size + size / 2
 
       ctx.beginPath()
-      ctx.fillStyle = color.hex
+      ctx.fillStyle = color?.hex ?? '#e8dbe2'
       ctx.arc(cx, cy, radius, 0, Math.PI * 2)
       ctx.fill()
 
@@ -400,7 +420,8 @@ export const buildPerlerSvg = (
   for (let y = 0; y < data.height; y += 1) {
     for (let x = 0; x < data.width; x += 1) {
       const index = data.indices[y * data.width + x]
-      const color = data.palette[index].hex
+      const safeIndex = index ?? 0
+      const color = (data.palette[safeIndex] ?? data.palette[0])?.hex ?? '#e8dbe2'
       const cx = x * size + size / 2
       const cy = y * size + size / 2
       circles.push(

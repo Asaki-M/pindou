@@ -6,6 +6,7 @@ import {
   DEFAULT_PALETTE,
   renderBeads,
   type PaletteColor,
+  type PaletteEntry,
   type PerlerResult,
 } from '../utils/perler'
 
@@ -19,7 +20,7 @@ export const usePerlerArt = () => {
   const dither = ref(true)
   const mergeStrength = ref(1)
   const palette = ref<PaletteColor[]>([])
-  const paletteBase = ref(DEFAULT_PALETTE)
+  const paletteBase = ref<PaletteEntry[]>(DEFAULT_PALETTE)
   const background = ref(DEFAULT_BACKGROUND_COLOR)
   const objectUrl = ref<string | null>(null)
   const lastResult = ref<PerlerResult | null>(null)
