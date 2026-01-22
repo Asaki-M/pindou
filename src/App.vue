@@ -28,7 +28,9 @@
       v-if="showGame"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
     >
-      <div class="max-h-full w-full max-w-5xl overflow-y-auto rounded-3xl bg-[#f3eaf0] p-6">
+      <div
+        class="max-h-[90vh] w-[90vw] overflow-y-auto rounded-3xl bg-[#f3eaf0] p-6"
+      >
         <div class="flex items-center justify-between">
           <div>
             <h2 class="text-2xl font-semibold text-[#2b1a2b]">拼豆游戏</h2>
@@ -43,13 +45,13 @@
           </button>
         </div>
 
-        <div class="mt-6 grid gap-6 xl:grid-cols-[1fr_1.2fr_260px]">
+        <div class="mt-6 grid gap-6 xl:grid-cols-[1fr_1fr_280px]">
           <PixelPreview :image-info="imageInfo">
             <img
               v-if="previewImageUrl"
               :src="previewImageUrl"
               alt="拼豆预览"
-              class="max-w-full"
+              class="h-auto w-full"
             />
             <div v-else class="px-6 py-12 text-sm text-[#4f3b52]">还没有预览图</div>
           </PixelPreview>

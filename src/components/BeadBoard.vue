@@ -9,7 +9,7 @@
     <div
       class="mt-4 flex items-center justify-center overflow-hidden rounded-xl border border-[#b09aa6] bg-[#c1aeb9]"
     >
-      <canvas ref="boardRef" class="max-w-full cursor-crosshair" @click="onClick"></canvas>
+      <canvas ref="boardRef" class="h-auto w-full cursor-crosshair" @click="onClick"></canvas>
     </div>
     <p class="mt-3 text-xs text-[#6a516e]">
       选择右侧颜色后点击格子放置拼豆。
